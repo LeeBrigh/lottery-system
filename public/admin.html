@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抽签结果统计 - 管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --c-bg1:#6366f1;--c-bg2:#8b5cf6;
+  --c-card:#fff;--c-text:#1e293b;--c-sub:#64748b;--c-border:#e2e8f0;
+  --c-primary:#6366f1;--c-primary-d:#4f46e5;
+  --c-success:#10b981;--c-error:#ef4444;--c-warn:#f59e0b;
+  --g2024:#3b82f6;--g2025:#10b981;--g2026:#f59e0b;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,var(--c-bg1),var(--c-bg2));min-height:100vh;padding:20px 16px}
+.container{max-width:1000px;margin:0 auto}
+.header{text-align:center;color:#fff;margin-bottom:24px}
+.header h1{font-size:28px;font-weight:700;margin-bottom:6px}
+.header .subtitle{font-size:14px;opacity:.85}
+.card{background:var(--c-card);border-radius:16px;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.15);margin-bottom:16px}
+.card h2{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:16px}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.summary-item{text-align:center;padding:16px 8px;border-radius:12px;background:#f8fafc}
+.summary-item .s-num{font-size:28px;font-weight:800;color:var(--c-text);line-height:1.2}
+.summary-item .s-label{font-size:12px;color:var(--c-sub);margin-top:4px}
+.summary-item .s-bar{height:5px;background:#e2e8f0;border-radius:3px;margin-top:8px;overflow:hidden}
+.summary-item .s-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.summary-item.total .s-num{color:var(--c-primary)}
+.summary-item.total .s-bar-fill{background:var(--c-primary)}
+.summary-item.g2024 .s-num{color:var(--g2024)}
+.summary-item.g2024 .s-bar-fill{background:var(--g2024)}
+.summary-item.g2025 .s-num{color:var(--g2025)}
+.summary-item.g2025 .s-bar-fill{background:var(--g2025)}
+.summary-item.g2026 .s-num{color:var(--g2026)}
+.summary-item.g2026 .s-bar-fill{background:var(--g2026)}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:12px}
+.status-badge.ongoing{background:#fef3c7;color:#92400e}
+.status-badge.done{background:#d1fae5;color:#065f46}
+.status-badge .dot{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+table{width:100%;border-collapse:collapse;font-size:14px}
+table th,table td{padding:10px 8px;text-align:center;border:1px solid var(--c-border)}
+table th{background:#f1f5f9;font-weight:700;color:var(--c-text);font-size:13px;white-space:nowrap}
+table td{color:var(--c-text)}
+table td.group-name{font-weight:700;background:#f8fafc}
+table td.na{color:#cbd5e1}
+table td.names{text-align:left;font-size:13px}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;margin:1px}
+.tag.g2024{background:#dbeafe;color:#1e40af}
+.tag.g2025{background:#d1fae5;color:#065f46}
+.tag.g2026{background:#fef3c7;color:#92400e}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
+.btn-primary{background:var(--c-primary);color:#fff}
+.btn-primary:hover{background:var(--c-primary-d)}
+.btn-outline{background:#fff;border:2px solid var(--c-border);color:var(--c-text)}
+.btn-outline:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-danger{background:var(--c-error);color:#fff}
+.btn-danger:hover{opacity:.85}
+.btn-sm{padding:4px 10px;font-size:12px;border-radius:6px}
+.auto-toggle{margin-left:auto;font-size:13px;color:var(--c-sub);display:flex;align-items:center;gap:6px}
+.auto-toggle input{cursor:pointer}
+.detail-table th,table.detail th{background:#f1f5f9}
+table.detail td{font-size:13px}
+.del-btn{background:#fee2e2;color:#ef4444;border:none;padding:3px 8px;border-radius:5px;font-size:12px;cursor:pointer;transition:all .2s}
+.del-btn:hover{background:#fecaca}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:none;justify-content:center;align-items:center;z-index:999}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;max-width:380px;width:90%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:8px;color:var(--c-text)}
+.modal p{font-size:14px;color:var(--c-sub);margin-bottom:16px}
+.modal input{width:100%;padding:12px 14px;border:2px solid var(--c-border);border-radius:10px;font-size:15px;outline:none;margin-bottom:16px}
+.modal input:focus{border-color:var(--c-primary)}
+.modal-actions{display:flex;gap:10px}
+.modal-actions .btn{flex:1;justify-content:center}
+.empty{text-align:center;padding:40px;color:var(--c-sub);font-size:14px}
+.footer-link{text-align:center;margin-top:16px}
+.footer-link a{color:rgba(255,255,255,.7);font-size:13px;text-decoration:none}
+.footer-link a:hover{color:#fff}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.toast.error{background:var(--c-error)}
+.toast.success{background:var(--c-success)}
+@media(max-width:640px){
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+  .card{padding:16px}
+  table{font-size:12px}
+  table th,table td{padding:6px 4px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📊 抽签结果统计</h1>
+    <p class="subtitle">27人分组抽签 · 管理后台</p>
+  </div>
+
+  <!-- 统计概览 -->
+  <div class="card">
+    <div id="statusBadge" class="status-badge ongoing"><span class="dot"></span>进行中</div>
+    <div class="summary-grid">
+      <div class="summary-item total">
+        <div class="s-num" id="totalNum">0/27</div>
+        <div class="s-label">总进度</div>
+        <div class="s-bar"><div class="s-bar-fill" id="totalBar" style="width:0"></div></div>
+      </div>
+      <div class="summary-item g2024">
+        <div class="s-num" id="g2024Num">0/5</div>
+        <div class="s-label">2024级</div>
+        <div class="s-bar"><div class="s-bar-fill" id="g2024Bar" style="width:0"></div></div>
+      </div>
+      <div class="summary-item g2025">
+        <div class="s-num" id="g2025Num">0/12</div>
+        <div class="s-label">2025级</div>
+        <div class="s-bar"><div class="s-bar-fill" id="g2025Bar" style="width:0"></div></div>
+      </div>
+      <div class="summary-item g2026">
+        <div class="s-num" id="g2026Num">0/10</div>
+        <div class="s-label">2026级</div>
+        <div class="s-bar"><div class="s-bar-fill" id="g2026Bar" style="width:0"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分组矩阵表 -->
+  <div class="card">
+    <h2>分组矩阵</h2>
+    <div style="overflow-x:auto">
+      <table id="matrixTable">
+        <thead>
+          <tr>
+            <th>组别</th>
+            <th>2024级</th>
+            <th>2025级</th>
+            <th>2026级</th>
+            <th>合计</th>
+          </tr>
+        </thead>
+        <tbody id="matrixBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 抽签明细 -->
+  <div class="card">
+    <h2>抽签明细</h2>
+    <div class="toolbar">
+      <button class="btn btn-outline" onclick="loadData()">🔄 刷新</button>
+      <button class="btn btn-outline" onclick="exportCSV()">📥 导出CSV</button>
+      <button class="btn btn-danger" onclick="showReset()">🗑️ 重置数据</button>
+      <label class="auto-toggle"><input type="checkbox" id="autoToggle" checked onchange="toggleAuto()"> 自动刷新 (5s)</label>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="detail" id="detailTable">
+        <thead>
+          <tr><th>序号</th><th>姓名</th><th>年级</th><th>组别</th><th>时间</th><th>操作</th></tr>
+        </thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+    <div id="emptyHint" class="empty hidden">暂无抽签记录</div>
+  </div>
+
+  <div class="footer-link"><a href="/">← 返回抽签页面</a></div>
+</div>
+
+<!-- 重置弹窗 -->
+<div class="modal-overlay" id="resetModal">
+  <div class="modal">
+    <h3>⚠️ 重置所有数据</h3>
+    <p>此操作将清除所有抽签记录，不可恢复。请输入管理密码确认。</p>
+    <input type="password" id="resetPwd" placeholder="管理密码" onkeydown="if(event.key==='Enter')confirmReset()">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeReset()">取消</button>
+      <button class="btn btn-danger" onclick="confirmReset()">确认重置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除弹窗 -->
+<div class="modal-overlay" id="delModal">
+  <div class="modal">
+    <h3>删除抽签记录</h3>
+    <p>确认删除 <strong id="delName"></strong> 的抽签记录？删除后该名额释放。</p>
+    <input type="password" id="delPwd" placeholder="管理密码" onkeydown="if(event.key==='Enter')confirmDelete()">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDel()">取消</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let autoTimer=null;
+let delTarget='';
+let allData=null;
+const gradeColors={'2024级':'g2024','2025级':'g2025','2026级':'g2026'};
+
+function toast(msg,type){
+  const t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+async function loadData(){
+  try{
+    const r=await fetch('/api/results');
+    const d=await r.json();
+    allData=d;
+    renderSummary(d);
+    renderMatrix(d);
+    renderDetail(d);
+  }catch(e){
+    toast('加载失败，请检查服务器','error');
+  }
+}
+
+function renderSummary(d){
+  const total=d.totalDrawn;
+  const totalQ=d.totalQuota;
+  document.getElementById('totalNum').textContent=`${total}/${totalQ}`;
+  document.getElementById('totalBar').style.width=(total/totalQ*100)+'%';
+
+  const grades=['2024级','2025级','2026级'];
+  const ids={'2024级':'g2024','2025级':'g2025','2026级':'g2026'};
+  for(const g of grades){
+    const s=d.gradeSummary[g];
+    document.getElementById(ids[g]+'Num').textContent=`${s.drawn}/${s.total}`;
+    document.getElementById(ids[g]+'Bar').style.width=(s.total>0?s.drawn/s.total*100:0)+'%';
+  }
+
+  const badge=document.getElementById('statusBadge');
+  if(d.isComplete){
+    badge.className='status-badge done';
+    badge.innerHTML='<span class="dot"></span>已完成';
+  }else{
+    badge.className='status-badge ongoing';
+    badge.innerHTML='<span class="dot"></span>进行中';
+  }
+}
+
+function renderMatrix(d){
+  const groups=['1-1','1-2','1-3','2-1','2-2','2-3'];
+  const grades=['2024级','2025级','2026级'];
+  let html='';
+  for(const g of groups){
+    html+='<tr>';
+    html+=`<td class="group-name">${g}</td>`;
+    for(const grade of grades){
+      const cell=d.table[g][grade];
+      if(cell.quota===0){
+        html+='<td class="na">—</td>';
+      }else{
+        const names=cell.names.length>0?cell.names.map(n=>`<span class="tag ${gradeColors[grade]}">${esc(n)}</span>`).join(' '):'<span style="color:#cbd5e1">空</span>';
+        html+=`<td class="names">${names}<br><span style="font-size:11px;color:#94a3b8">${cell.filled}/${cell.quota}</span></td>`;
+      }
+    }
+    const gs=d.groupSummary[g];
+    html+=`<td><strong>${gs.drawn}/${gs.total}</strong></td>`;
+    html+='</tr>';
+  }
+  // 合计行
+  html+='<tr style="background:#f8fafc;font-weight:700">';
+  html+='<td class="group-name">合计</td>';
+  for(const grade of grades){
+    const s=d.gradeSummary[grade];
+    html+=`<td>${s.drawn}/${s.total}</td>`;
+  }
+  html+=`<td>${d.totalDrawn}/${d.totalQuota}</td>`;
+  html+='</tr>';
+  document.getElementById('matrixBody').innerHTML=html;
+}
+
+function renderDetail(d){
+  const tbody=document.getElementById('detailBody');
+  const empty=document.getElementById('emptyHint');
+  if(d.draws.length===0){
+    tbody.innerHTML='';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  let html='';
+  d.draws.forEach((dr,i)=>{
+    const t=new Date(dr.timestamp);
+    const time=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate())+' '+pad(t.getHours())+':'+pad(t.getMinutes())+':'+pad(t.getSeconds());
+    html+=`<tr>`;
+    html+=`<td>${i+1}</td>`;
+    html+=`<td><strong>${esc(dr.name)}</strong></td>`;
+    html+=`<td><span class="tag ${gradeColors[dr.grade]}">${dr.grade}</span></td>`;
+    html+=`<td><strong style="font-size:15px">${dr.group}</strong></td>`;
+    html+=`<td style="font-size:12px;color:var(--c-sub)">${time}</td>`;
+    html+=`<td><button class="del-btn" onclick="showDelete('${esc(dr.name)}')">删除</button></td>`;
+    html+=`</tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function pad(n){return String(n).padStart(2,'0');}
+
+function exportCSV(){
+  if(!allData||allData.draws.length===0){toast('暂无数据可导出','error');return;}
+  let csv='\uFEFF序号,姓名,年级,组别,抽签时间\n';
+  allData.draws.forEach((d,i)=>{
+    const t=new Date(d.timestamp);
+    const time=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate())+' '+pad(t.getHours())+':'+pad(t.getMinutes())+':'+pad(t.getSeconds());
+    csv+=`${i+1},${d.name},${d.grade},${d.group},${time}\n`;
+  });
+  // 追加矩阵表
+  csv+='\n\n分组矩阵\n';
+  csv+='组别,2024级,2025级,2026级,合计\n';
+  const groups=['1-1','1-2','1-3','2-1','2-2','2-3'];
+  for(const g of groups){
+    const row=[g];
+    for(const grade of ['2024级','2025级','2026级']){
+      const c=allData.table[g][grade];
+      row.push(c.quota===0?'—':`${c.filled}/${c.quota}`);
+    }
+    row.push(`${allData.groupSummary[g].drawn}/${allData.groupSummary[g].total}`);
+    csv+=row.join(',')+'\n';
+  }
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='抽签结果_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('CSV已导出','success');
+}
+
+// 重置
+function showReset(){document.getElementById('resetModal').classList.add('show');document.getElementById('resetPwd').focus();}
+function closeReset(){document.getElementById('resetModal').classList.remove('show');document.getElementById('resetPwd').value='';}
+async function confirmReset(){
+  const pwd=document.getElementById('resetPwd').value;
+  try{
+    const r=await fetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+    const d=await r.json();
+    if(d.success){
+      toast('数据已重置','success');
+      closeReset();
+      loadData();
+    }else{
+      toast(d.error||'重置失败','error');
+    }
+  }catch(e){toast('网络错误','error');}
+}
+
+// 删除
+function showDelete(name){
+  delTarget=name;
+  document.getElementById('delName').textContent=name;
+  document.getElementById('delModal').classList.add('show');
+  document.getElementById('delPwd').focus();
+}
+function closeDel(){document.getElementById('delModal').classList.remove('show');document.getElementById('delPwd').value='';delTarget='';}
+async function confirmDelete(){
+  const pwd=document.getElementById('delPwd').value;
+  try{
+    const r=await fetch('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:delTarget,password:pwd})});
+    const d=await r.json();
+    if(d.success){
+      toast(`已删除 ${delTarget} 的记录`,'success');
+      closeDel();
+      loadData();
+    }else{
+      toast(d.error||'删除失败','error');
+    }
+  }catch(e){toast('网络错误','error');}
+}
+
+// 自动刷新
+function toggleAuto(){
+  const on=document.getElementById('autoToggle').checked;
+  if(on){
+    autoTimer=setInterval(loadData,5000);
+  }else{
+    clearInterval(autoTimer);
+    autoTimer=null;
+  }
+}
+
+// 初始化
+loadData();
+autoTimer=setInterval(loadData,5000);
+</script>
+</body>
+</html>
