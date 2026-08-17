@@ -1,0 +1,6 @@
+data.json
+node_modules/
+cloudflared.exe
+.workbuddy/
+*.log
+.env
