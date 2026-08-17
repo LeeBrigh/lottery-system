@@ -1,0 +1,15 @@
+{
+  "name": "lottery-system",
+  "version": "1.0.0",
+  "description": "27人分组抽签系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
