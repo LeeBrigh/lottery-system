@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分组抽签系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --c-bg1:#6366f1;--c-bg2:#8b5cf6;
+  --c-card:#fff;--c-text:#1e293b;--c-sub:#64748b;--c-border:#e2e8f0;
+  --c-primary:#6366f1;--c-primary-d:#4f46e5;
+  --c-success:#10b981;--c-error:#ef4444;--c-warn:#f59e0b;
+  --g2024:#3b82f6;--g2025:#10b981;--g2026:#f59e0b;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,var(--c-bg1),var(--c-bg2));min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px 16px}
+.container{max-width:520px;width:100%}
+.header{text-align:center;color:#fff;margin-bottom:20px}
+.header h1{font-size:28px;font-weight:700;margin-bottom:6px}
+.header .subtitle{font-size:14px;opacity:.85}
+.progress-wrap{background:rgba(255,255,255,.15);border-radius:12px;padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.progress-bar{flex:1;height:8px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:#fff;border-radius:4px;transition:width .5s ease;width:0}
+.progress-text{color:#fff;font-size:13px;font-weight:600;white-space:nowrap}
+.card{background:var(--c-card);border-radius:20px;padding:28px 24px;box-shadow:0 20px 50px rgba(0,0,0,.18);margin-bottom:16px}
+.card.hidden{display:none}
+.step-badge{display:inline-block;background:var(--c-primary);color:#fff;font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;margin-bottom:14px}
+.card h2{font-size:20px;font-weight:700;color:var(--c-text);margin-bottom:18px}
+input[type=text]{width:100%;padding:14px 16px;border:2px solid var(--c-border);border-radius:12px;font-size:16px;outline:none;transition:border .2s;margin-bottom:16px}
+input[type=text]:focus{border-color:var(--c-primary)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:12px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
+.btn-primary{background:var(--c-primary);color:#fff;width:100%}
+.btn-primary:hover{background:var(--c-primary-d);transform:translateY(-1px)}
+.btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;transform:none}
+.btn-text{background:transparent;color:var(--c-sub);font-size:14px;width:100%;margin-top:8px}
+.btn-text:hover{color:var(--c-primary)}
+.btn-large{padding:16px;font-size:17px}
+.grade-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.grade-btn{border:2px solid var(--c-border);border-radius:14px;padding:16px 8px;background:#fff;cursor:pointer;transition:all .2s;text-align:center}
+.grade-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.1)}
+.grade-btn .g-label{display:block;font-size:16px;font-weight:700;margin-bottom:4px}
+.grade-btn .g-count{display:block;font-size:12px;color:var(--c-sub)}
+.grade-btn[data-grade="2024级"]:hover{border-color:var(--g2024)}
+.grade-btn[data-grade="2024级"] .g-label{color:var(--g2024)}
+.grade-btn[data-grade="2025级"]:hover{border-color:var(--g2025)}
+.grade-btn[data-grade="2025级"] .g-label{color:var(--g2025)}
+.grade-btn[data-grade="2026级"]:hover{border-color:var(--g2026)}
+.grade-btn[data-grade="2026级"] .g-label{color:var(--g2026)}
+.grade-btn.full{opacity:.4;cursor:not-allowed}
+.grade-btn.full:hover{transform:none;box-shadow:none}
+.user-info{background:#f8fafc;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;gap:20px;font-size:14px;color:var(--c-sub)}
+.user-info strong{color:var(--c-text);font-size:15px}
+.slots-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.slot{border:1px solid var(--c-border);border-radius:10px;padding:10px 6px;text-align:center;font-size:13px}
+.slot .s-group{font-weight:700;font-size:16px;color:var(--c-text);margin-bottom:2px}
+.slot .s-count{color:var(--c-sub);font-size:12px}
+.slot.available{border-color:var(--c-success);background:#f0fdf4}
+.slot.full{border-color:var(--c-border);background:#f8fafc;opacity:.5}
+.slot.na{border-style:dashed;opacity:.3}
+.slots-summary{text-align:center;font-size:14px;color:var(--c-sub);margin-bottom:16px}
+.slots-summary strong{color:var(--c-success)}
+.shuffle-box{text-align:center;padding:20px 0}
+.shuffle-text{font-size:72px;font-weight:900;color:var(--c-primary);min-height:90px;display:flex;align-items:center;justify-content:center;animation:shake .15s infinite}
+@keyframes shake{0%,100%{transform:translate(0)}25%{transform:translate(-4px,2px)}50%{transform:translate(4px,-2px)}75%{transform:translate(-2px,-2px)}}
+.shuffle-hint{text-align:center;color:var(--c-sub);font-size:14px;margin-top:8px}
+.result-box{text-align:center;padding:20px 0}
+.result-emoji{font-size:48px;margin-bottom:8px}
+.result-label{font-size:14px;color:var(--c-sub);margin-bottom:6px}
+.result-name{font-size:20px;font-weight:700;color:var(--c-text);margin-bottom:14px}
+.result-grade{display:inline-block;padding:3px 12px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;margin-bottom:14px}
+.result-group{font-size:64px;font-weight:900;color:var(--c-primary);margin-bottom:6px;animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.result-group-label{font-size:14px;color:var(--c-sub)}
+.result-hint{text-align:center;color:var(--c-sub);font-size:13px;margin:16px 0}
+.error-box{text-align:center;padding:20px 0}
+.error-icon{font-size:48px;margin-bottom:12px}
+.footer{text-align:center;margin-top:12px}
+.footer a{color:rgba(255,255,255,.7);font-size:13px;text-decoration:none}
+.footer a:hover{color:#fff}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;z-index:9999;animation:slideDown .3s ease;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.toast.error{background:var(--c-error)}
+.toast.success{background:var(--c-success)}
+@keyframes slideDown{from{transform:translate(-50%,-100%);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🎲 分组抽签系统</h1>
+    <p class="subtitle">27人分组抽签 · 公平随机分配</p>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText">0 / 27</span>
+  </div>
+
+  <!-- 步骤1: 姓名 -->
+  <div class="card" id="stepName">
+    <span class="step-badge">步骤 1 / 3</span>
+    <h2>请输入你的姓名</h2>
+    <input type="text" id="nameInput" placeholder="输入真实姓名" maxlength="20" onkeydown="if(event.key==='Enter')goGrade()">
+    <button class="btn btn-primary" onclick="goGrade()">下一步</button>
+  </div>
+
+  <!-- 步骤2: 年级 -->
+  <div class="card hidden" id="stepGrade">
+    <span class="step-badge">步骤 2 / 3</span>
+    <h2>选择你的年级</h2>
+    <div class="grade-grid">
+      <button class="grade-btn" data-grade="2024级" onclick="selectGrade('2024级')">
+        <span class="g-label">2024级</span>
+        <span class="g-count" id="gCount2024">5个名额</span>
+      </button>
+      <button class="grade-btn" data-grade="2025级" onclick="selectGrade('2025级')">
+        <span class="g-label">2025级</span>
+        <span class="g-count" id="gCount2025">12个名额</span>
+      </button>
+      <button class="grade-btn" data-grade="2026级" onclick="selectGrade('2026级')">
+        <span class="g-label">2026级</span>
+        <span class="g-count" id="gCount2026">10个名额</span>
+      </button>
+    </div>
+    <button class="btn btn-text" onclick="show('stepName')">← 返回</button>
+  </div>
+
+  <!-- 步骤3: 抽签 -->
+  <div class="card hidden" id="stepDraw">
+    <span class="step-badge">步骤 3 / 3</span>
+    <h2>确认信息并抽签</h2>
+    <div class="user-info">
+      <span>姓名：<strong id="confirmName"></strong></span>
+      <span>年级：<strong id="confirmGrade"></strong></span>
+    </div>
+    <div class="slots-grid" id="slotsGrid"></div>
+    <div class="slots-summary" id="slotsSummary"></div>
+    <button class="btn btn-primary btn-large" id="drawBtn" onclick="doDraw()">🎲 开始抽签</button>
+    <button class="btn btn-text" onclick="show('stepGrade')">← 返回</button>
+  </div>
+
+  <!-- 抽签动画 -->
+  <div class="card hidden" id="stepAnim">
+    <h2 style="text-align:center">正在抽签...</h2>
+    <div class="shuffle-box">
+      <div class="shuffle-text" id="shuffleText">?</div>
+    </div>
+    <p class="shuffle-hint">系统正在为你随机分配分组</p>
+  </div>
+
+  <!-- 结果 -->
+  <div class="card hidden" id="stepResult">
+    <div class="result-box">
+      <div class="result-emoji">🎉</div>
+      <div class="result-label">抽签结果</div>
+      <div class="result-name" id="resName"></div>
+      <div class="result-grade" id="resGrade"></div>
+      <div class="result-group" id="resGroup"></div>
+      <div class="result-group-label">你的分组</div>
+    </div>
+    <p class="result-hint">请截图保存你的分组信息</p>
+    <a href="/admin" class="btn btn-text">📊 查看完整分组表</a>
+  </div>
+
+  <!-- 错误 -->
+  <div class="card hidden" id="stepError">
+    <div class="error-box">
+      <div class="error-icon">⚠️</div>
+      <h2 id="errTitle" style="margin-bottom:8px"></h2>
+      <p id="errMsg" style="color:var(--c-sub);font-size:14px;margin-bottom:16px"></p>
+      <button class="btn btn-primary" onclick="location.reload()">重新开始</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="/admin">管理后台</a>
+  </div>
+</div>
+
+<script>
+let userName='', userGrade='';
+
+function show(id){
+  ['stepName','stepGrade','stepDraw','stepAnim','stepResult','stepError'].forEach(e=>{
+    document.getElementById(e).classList.toggle('hidden', e!==id);
+  });
+}
+
+function toast(msg,type){
+  const t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+async function loadStatus(){
+  try{
+    const r=await fetch('/api/status');
+    const d=await r.json();
+    const pct=(d.totalDrawn/d.totalQuota)*100;
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressText').textContent=`${d.totalDrawn} / ${d.totalQuota}`;
+    // 更新年级名额
+    const grades={'2024级':'gCount2024','2025级':'gCount2025','2026级':'gCount2026'};
+    for(const g in grades){
+      const s=d.gradeSummary[g];
+      const el=document.getElementById(grades[g]);
+      if(s) el.textContent=s.remaining>0?`${s.remaining}个名额剩余`:'已满';
+      const btn=document.querySelector(`.grade-btn[data-grade="${g}"]`);
+      if(btn) btn.classList.toggle('full', s&&s.remaining<=0);
+    }
+    return d;
+  }catch(e){
+    console.error(e);
+    return null;
+  }
+}
+
+function goGrade(){
+  const name=document.getElementById('nameInput').value.trim();
+  if(!name){toast('请输入姓名','error');return;}
+  userName=name;
+  // 检查是否已抽过
+  fetch('/api/lookup?name='+encodeURIComponent(name))
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.success){
+        showResult(d);
+      }else{
+        show('stepGrade');
+      }
+    })
+    .catch(()=>{ show('stepGrade'); });
+}
+
+async function selectGrade(grade){
+  userGrade=grade;
+  const status=await loadStatus();
+  if(status && status.gradeSummary[grade].remaining<=0){
+    toast('该年级名额已满','error');
+    return;
+  }
+  document.getElementById('confirmName').textContent=userName;
+  document.getElementById('confirmGrade').textContent=grade;
+
+  // 渲染可用名额
+  const grid=document.getElementById('slotsGrid');
+  grid.innerHTML='';
+  const groups=['1-1','1-2','1-3','2-1','2-2','2-3'];
+  let availableCount=0;
+  for(const g of groups){
+    const quota=status.quotas[grade][g];
+    const filled=status.filled[grade][g];
+    const remaining=quota-filled;
+    if(quota===0){
+      grid.innerHTML+=`<div class="slot na"><div class="s-group">${g}</div><div class="s-count">—</div></div>`;
+    }else if(remaining>0){
+      availableCount+=remaining;
+      grid.innerHTML+=`<div class="slot available"><div class="s-group">${g}</div><div class="s-count">剩${remaining}/${quota}</div></div>`;
+    }else{
+      grid.innerHTML+=`<div class="slot full"><div class="s-group">${g}</div><div class="s-count">满 ${filled}/${quota}</div></div>`;
+    }
+  }
+  document.getElementById('slotsSummary').innerHTML=`共 <strong>${availableCount}</strong> 个名额可选，随机分配`;
+  show('stepDraw');
+}
+
+function doDraw(){
+  const btn=document.getElementById('drawBtn');
+  btn.disabled=true;
+  // 显示动画
+  show('stepAnim');
+  const shuffleEl=document.getElementById('shuffleText');
+  const groups=['1-1','1-2','1-3','2-1','2-2','2-3'];
+  const startTime=Date.now();
+  const animTimer=setInterval(()=>{
+    shuffleEl.textContent=groups[Math.floor(Math.random()*groups.length)];
+  },80);
+
+  fetch('/api/draw',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:userName,grade:userGrade})
+  })
+    .then(r=>r.json())
+    .then(data=>{
+      const elapsed=Date.now()-startTime;
+      const delay=Math.max(0,2000-elapsed);
+      setTimeout(()=>{
+        clearInterval(animTimer);
+        if(data.success){
+          try{localStorage.setItem('drawResult',JSON.stringify(data));}catch(e){}
+          showResult(data);
+          loadStatus();
+        }else if(data.alreadyDrawn){
+          showResult(data);
+        }else{
+          show('stepError');
+          document.getElementById('errTitle').textContent='抽签失败';
+          document.getElementById('errMsg').textContent=data.error||'未知错误';
+        }
+      },delay);
+    })
+    .catch(()=>{
+      clearInterval(animTimer);
+      show('stepError');
+      document.getElementById('errTitle').textContent='网络错误';
+      document.getElementById('errMsg').textContent='无法连接服务器，请检查网络后重试';
+    });
+}
+
+function showResult(data){
+  document.getElementById('resName').textContent=data.name;
+  const gradeEl=document.getElementById('resGrade');
+  gradeEl.textContent=data.grade;
+  const gradeColors={'2024级':'#3b82f6','2025级':'#10b981','2026级':'#f59e0b'};
+  gradeEl.style.background=gradeColors[data.grade]||'#6366f1';
+  document.getElementById('resGroup').textContent=data.group;
+  show('stepResult');
+}
+
+// 页面加载
+(async function init(){
+  await loadStatus();
+  // 检查 localStorage
+  try{
+    const saved=localStorage.getItem('drawResult');
+    if(saved){
+      const data=JSON.parse(saved);
+      // 验证
+      const r=await fetch('/api/lookup?name='+encodeURIComponent(data.name));
+      const d=await r.json();
+      if(d.success){
+        showResult(d);
+        return;
+      }
+    }
+  }catch(e){}
+  show('stepName');
+  document.getElementById('nameInput').focus();
+})();
+</script>
+</body>
+</html>
