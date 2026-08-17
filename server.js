@@ -29,7 +29,7 @@ const MIME_TYPES = {
 
 // ==================== 数据管理 ====================
 // 双模式存储：设置了 DATABASE_URL 时使用 PostgreSQL（云部署），否则使用本地文件
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_EYjXzT4x5qic@ep-cool-wildflower-ay32lvw9-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 let pgPool = null;
 
 if (DATABASE_URL) {
